@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css"
+	integrity="sha256-aAr2Zpq8MZ+YA/D6JtRD3xtrwpEz2IqOS+pWD/7XKIw=" crossorigin="anonymous">
+<title>Git LFS One</title>
+<style>
+	body {
+		max-width: 30em;
+		margin: 0 auto;
+	}
+
+	#connect-onedrive {
+		min-height: 30em;
+	}
+
+	samp {
+		background: whitesmoke;
+	}
+</style>
+<script>
+	const $ = document.querySelector.bind(document);
+	if(window.location.protocol!="https:"){
+		window.location.protocol = "https:";
+	}
+	const verify = (signature_base64, data_str) => crypto.subtle.importKey("jwk", { "alg": "RS256", "e": "AQAB", "ext": true, "key_ops": ["verify"], "kty": "RSA", "n": "zUIZDg_7dmYCW2A-GfTf3OJ5CGsYBC-I90QIXj3h1SKUmjh9DhluQpfkgOhXhofB4HgAfyQWadpW8K8QSaTvi-_mZ0H8lpOGRRnPbzopfP9TqhQ2X4LxngoErAOILE1El4qZlvVhXBzLbXjdWm-ctATFfVHL_l456MclJrAPuL0" }, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]).then(k => { return crypto.subtle.verify("RSASSA-PKCS1-v1_5", k, Uint8Array.from(atob(signature_base64), c => c.charCodeAt(0)), Uint8Array.from(data_str, c => c.charCodeAt(0))) }).then(v => { if (v) return v; else throw new Error; });
+	window.addEventListener("load", () => {
+		const QueryString = new URLSearchParams(window.location.search);
+		const Code = QueryString.get("code");
+		const Sign = QueryString.get("sign");
+		if (Code == "error") $("#connect-error")
+			.classList.toggle("active");
+		else if (Code == "webvisit") $("#invalid-request")
+			.classList.toggle("active");
+		else verify(decodeURIComponent(Sign), Code).then(() => {
+			$("#user-id").innerText = Code;
+			$("#user-url").href = `https://lfs.v.ariant.cn/${Code}/`;
+			$("#fin").classList.toggle("active");
+		}).catch(() => {
+			$("#intro").classList.toggle("active");
+		})
+	});
+</script>
+<header class="mt-md-4 p-3 shadow">
+	<h1>Git LFS One</h1>
+</header>
+<div id="connect-onedrive" class="carousel slide p-3 p-md-4 shadow" data-wrap="false" data-interval="false">
+	<div class="carousel-inner text-left">
+		<div id="invalid-request" class="carousel-item">
+			<h2 class="alert alert-secondary">无效请求</h2>
+			<hr class="w-100">
+			<div class="my-4">
+				<p>请使用Git LFS客户端而不是浏览器访问lfs.v.ariant.cn</lfs>
+				</p>
+			</div>
+		</div>
+		<div id="connect-error" class="carousel-item">
+			<h2 class="alert alert-secondary">无法连接到OneDrive</h2>
+			<hr class="w-100">
+			<div class="text-center my-4"><a id="retry" class="btn btn-secondary"
+					href="https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=4637f264-fdf3-4133-b272-de5a91220a40&response_type=code&redirect_uri=https%3A%2F%2Flfs-connect.v.ariant.cn&response_mode=query&scope=offline_access%20Files.ReadWrite.AppFolder"
+					role="button">
+					<span>请点击此处重试</span>
+				</a></div>
+		</div>
+		<div id="intro" class="carousel-item">
+			<h2 class="mb-4">使用OneDrive托管Git LFS文件
+			</h2>
+			<div class="text-center my-4"><a id="onedrive-login" class="btn btn-primary"
+					href="https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=4637f264-fdf3-4133-b272-de5a91220a40&response_type=code&redirect_uri=https%3A%2F%2Flfs-connect.v.ariant.cn&response_mode=query&scope=offline_access%20Files.ReadWrite.AppFolder"
+					role="button">
+					<span>登录OneDrive账号</span>
+				</a></div>
+			<ol>
+				<li class="mb-2">登录并授权后，本应用为OneDrive账户生成一个LFS远程地址；（示例）<samp
+						class="mx-2">https://lfs.v.ariant.cn/jKZN6***I6c</samp></li>
+				<li class="mb-2">进入应用在OneDrive创建的目录<q><samp>Git-LFS-One/</samp></q>（本应用仅具有对此文件夹的访问权限）；</li>
+				<li class="mb-2">新建文件夹并使用<samp class="mx-2">git init --bare</samp>初始化仓库；</li>
+				<li class="mb-2">
+					在本地Git仓库将OneDrive中的文件夹（本地路径）添加为远程仓库；（<samp>git remote add onedrive
+						<var>&lt;file-system-path&gt;</var></path>
+					</samp>）</li>
+				<li class="mb-2">执行<samp class="mx-2">git lfs push --all onedrive</samp>上传LFS文件；</li>
+				<li class="mb-2">其他Git
+					LFS客户端可以将本应用提供的地址添加为远程仓库（<samp>remote</samp>）从而提取LFS管理的文件（<samp>pull</samp>、<samp>fetch</samp>）。
+				</li>
+			</ol>
+		</div>
+		<div id="device-connect" class="carousel-item">
+			<h2>请在新窗口打开</h2>
+			<h4 class="text-break"><a id="verification-uri" href="https://microsoft.com/devicelogin"
+					target="_blank">https://microsoft.com/devicelogin</a></h4>
+			<hr class="w-100">
+			<h2>输入代码</h2>
+			<h2 class="m-3 p-3"><span class="p-3 shadow text-monospace" id="user-code">XXXXXXXX</span></h2>
+			<h4>使用OneDrive账号登录，授权本应用访问OneDrive文件。</h4>
+			<hr class="w-100">
+			<h4 class="d-flex justify-content-end align-items-center"><span class="mx-3">请在完成授权后点击</span>
+				<a id="next-btn-connect" class="btn btn-primary" href="#connect-onedrive" role="button">
+					<span>下一步</span>
+				</a></h4>
+		</div>
+		<div id="fin" class="carousel-item">
+			<h2 class="alert alert-success">已成功连接到OneDrive</h2>
+			<hr class="w-100">
+			<h4>LFS远程地址：</h3>
+			<h6 class="border-bottom text-break my-3 py-3 text-monospace"><a id="user-url"
+					href="https://lfs.v.ariant.cn/" target="_blank">https://lfs.v.ariant.cn/<span
+						id="user-id">jKZN6***I6c</span>/<var class="text-info">&lt;folder&gt;</var>.git</a>
+			</h4>
+			<ul>
+				<li class="text-secondary"><strong class="text-primary">有效期至下月1日00:00UTC</strong>；<br>同账户曾获得的地址将失效</li>
+				<li class="text-secondary">应用目录可能位于<br><samp class="mx-2">OneDrive/Apps/Git-LFS-One</samp><br><samp
+						class="mx-2">OneDrive/应用/Git-LFS-One</samp></li>
+				<li class="text-secondary">替换<var class="text-info mx-2">&lt;folder&gt;</var>为文件夹名称</li>
+				<li class="text-secondary">可以直接将<samp>.git</samp>目录中的<samp>lfs</samp>文件夹复制到<br>“<samp>Git-LFS-One/<var
+							class="text-info">&lt;folder&gt;</var>/</samp>”目录下</li>
+			</ul>
+			<hr class="w-100">
+			<p class="alert alert-light">
+				请注意<strong>获得此地址和对应Git仓库即可下载“Git-LFS-One/”目录下的LFS文件</strong>，请勿在此文件夹中存放其他私人文件。（<a
+					href="https://account.live.com/consent/Manage" target="_blank">点击此处</a>取消授权）</p>
+
+		</div>
+	</div>
+</div>
+<hr class="w-100">
+<footer class="mx-3 text-center">
+	<p>&compfn;&nbsp;<a href="Terms-of-Use" target="_blank">使用条款</a>
+		&compfn;&nbsp;<a href="Privacy-Statement" target="_blank">隐私声明</a>
+		&compfn;&nbsp;<a href="https://github.com/zhxxch/git-lfs-one/#git-lfs-one" target="_blank">帮助</a>
+		&compfn;&nbsp;<a href="/">返回首页</a>&nbsp;&compfn;</p>
+	<p>&compfn;&nbsp;<a href="https://github.com/zhxxch/git-lfs-one"
+			target="_blank">github.com/zhxxch/git-lfs-one</a>&nbsp;&compfn;</p>
+</footer>
