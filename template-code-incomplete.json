@@ -1,0 +1,751 @@
+{
+	"ROSTemplateFormatVersion": "2015-09-01",
+	"Description": "Serverless Git LFS",
+	"Parameters": {
+	  "用户名": {
+		"Type": "String",
+		"Description": {
+		  "en": "Username for Git LFS",
+		  "zh-cn": "设置Git LFS HTTP认证的用户名"
+		},
+		"Label": "设置用户名",
+		"MinLength": 1
+	  },
+	  "密码": {
+		"Type": "String",
+		"Confirm": true,
+		"NoEcho": true,
+		"Description": {
+		  "en": "Password for Git LFS",
+		  "zh-cn": "设置Git LFS HTTP认证的密码"
+		},
+		"Label": "设置密码",
+		"MinLength": 6,
+		"ConstraintDescription": {
+		  "en": "Minimum password length is 6",
+		  "zh-cn": "密码长度至少为6位"
+		}
+	  },
+	  "安装文件锁定功能选项": {
+		"Type": "Boolean",
+		"Description": {
+		  "en": "Install Git LFS File Locking support",
+		  "zh-cn": "支持Git LFS文件锁定功能"
+		},
+		"Label": "是否安装文件锁定功能",
+		"Default": true
+	  }
+	},
+	"Conditions": {
+	  "安装文件锁定": {
+		"Fn::Equals": [
+		  true,
+		  {
+			"Ref": "安装文件锁定功能选项"
+		  }
+		]
+	  },
+	  "启用日志": false
+	},
+	"Outputs": {
+	  "Endpoint": {
+		"Description": "Git LFS远程地址",
+		"Value": {
+		  "Fn::Join": [
+			"",
+			[
+			  "https://",
+			  {
+				"Ref": "用户名"
+			  },
+			  ":",
+			  {
+				"Ref": "密码"
+			  },
+			  "@",
+			  {
+				"Ref": "ALIYUN::AccountId"
+			  },
+			  ".",
+			  {
+				"Ref": "ALIYUN::Region"
+			  },
+			  ".fc.aliyuncs.com/2016-08-15/proxy/",
+			  {
+				"Fn::GetAtt": [
+				  "LFS函数所属服务",
+				  "ServiceName"
+				]
+			  },
+			  "/",
+			  {
+				"Fn::GetAtt": [
+				  "LFS后端函数",
+				  "FunctionName"
+				]
+			  },
+			  "/{******}.git"
+			]
+		  ]
+		}
+	  }
+	},
+	"Mappings": {
+	  "VpcZones": {
+		"FC": {
+		  "cn-hangzhou": "cn-hangzhou-g",
+		  "cn-shanghai": "cn-shanghai-e",
+		  "cn-qingdao": "cn-qingdao-c",
+		  "cn-beijing": "cn-beijing-c",
+		  "cn-zhangjiakou": "cn-zhangjiakou-b",
+		  "cn-huhehaote": "cn-huhehaote-a",
+		  "cn-shenzhen": "cn-shenzhen-d",
+		  "cn-hongkong": "cn-hongkong-c",
+		  "ap-southeast-1": "ap-southeast-1a",
+		  "ap-southeast-2": "ap-southeast-2a",
+		  "ap-southeast-5": "ap-southeast-5a",
+		  "ap-northeast-1": "ap-northeast-1b",
+		  "eu-central-a": "eu-central-a",
+		  "us-west-1": "us-west-1a",
+		  "us-east-1": "us-east-1a",
+		  "ap-south-1": "ap-south-1a"
+		}
+	  }
+	},
+	"Resources": {
+	  "存放LFS文件的存储桶": {
+		"Type": "ALIYUN::OSS::Bucket",
+		"Properties": {
+		  "BucketName": {
+			"Fn::Join": [
+			  "-",
+			  [
+				"git-lfs",
+				{
+				  "Fn::Select": [
+					"-1",
+					{
+					  "Fn::Split": [
+						"-",
+						{
+						  "Fn::Replace": [
+							{
+							  "$INQUIRY": "024e4e88-3acf"
+							},
+							{
+							  "Fn::Replace": [
+								{
+								  "None": "93e9-b7410a087fdf"
+								},
+								{
+								  "Fn::Join": [
+									"-",
+									[
+									  {
+										"Ref": "ALIYUN::StackName"
+									  },
+									  {
+										"Ref": "ALIYUN::StackId"
+									  }
+									]
+								  ]
+								}
+							  ]
+							}
+						  ]
+						}
+					  ]
+					}
+				  ]
+				}
+			  ]
+			]
+		  },
+		  "AccessControl": "private",
+		  "ServerSideEncryptionConfiguration": {
+			"SSEAlgorithm": "AES256"
+		  }
+		}
+	  },
+	  "服务的RAM角色": {
+		"Type": "ALIYUN::RAM::Role",
+		"Properties": {
+		  "RoleName": {
+			"Fn::Join": [
+			  "-",
+			  [
+				"git-lfs",
+				{
+				  "Fn::Select": [
+					"-1",
+					{
+					  "Fn::Split": [
+						"-",
+						{
+						  "Ref": "ALIYUN::StackId"
+						}
+					  ]
+					}
+				  ]
+				},
+				"role"
+			  ]
+			]
+		  },
+		  "Description": "Git LFS函数计算RAM角色",
+		  "AssumeRolePolicyDocument": {
+			"Statement": [
+			  {
+				"Action": "sts:AssumeRole",
+				"Effect": "Allow",
+				"Principal": {
+				  "Service": [
+					"fc.aliyuncs.com"
+				  ]
+				}
+			  }
+			],
+			"Version": "1"
+		  }
+		}
+	  },
+	  "RAM角色授权": {
+		"Count": 5,
+		"Type": "ALIYUN::RAM::AttachPolicyToRole",
+		"Properties": {
+		  "PolicyType": "System",
+		  "RoleName": {
+			"Fn::GetAtt": [
+			  "服务的RAM角色",
+			  "RoleName"
+			]
+		  },
+		  "PolicyName": {
+			"Fn::Select": [
+			  {
+				"Ref": "ALIYUN::Index"
+			  },
+			  [
+				"AliyunECSNetworkInterfaceManagementAccess",
+				"AliyunOSSFullAccess",
+				"AliyunLogFullAccess",
+				"AliyunOTSFullAccess",
+				"AliyunFCFullAccess"
+			  ]
+			]
+		  }
+		},
+		"DependsOn": [
+		  "服务的RAM角色"
+		]
+	  },
+	  "日志项目": {
+		"Type": "ALIYUN::SLS::Project",
+		"Condition": "启用日志",
+		"Properties": {
+		  "Name": {
+			"Fn::Join": [
+			  "-",
+			  [
+				"git-lfs",
+				{
+				  "Fn::Select": [
+					"-1",
+					{
+					  "Fn::Split": [
+						"-",
+						{
+						  "Ref": "ALIYUN::StackId"
+						}
+					  ]
+					}
+				  ]
+				},
+				"logs"
+			  ]
+			]
+		  },
+		  "Description": "Git LFS函数计算日志项目"
+		}
+	  },
+	  "日志存储": {
+		"Type": "ALIYUN::SLS::Logstore",
+		"Condition": "启用日志",
+		"Properties": {
+		  "ProjectName": {
+			"Fn::GetAtt": [
+			  "日志项目",
+			  "Name"
+			]
+		  },
+		  "LogstoreName": "git-lfs-function-log",
+		  "ShardCount": 1,
+		  "MaxSplitShard": 1
+		},
+		"DependsOn": [
+		  "日志项目"
+		]
+	  },
+	  "日志索引": {
+		"Type": "ALIYUN::SLS::Index",
+		"Condition": "启用日志",
+		"Properties": {
+		  "ProjectName": {
+			"Fn::GetAtt": [
+			  "日志项目",
+			  "Name"
+			]
+		  },
+		  "FullTextIndex": {
+			"Enable": true
+		  },
+		  "LogstoreName": {
+			"Fn::GetAtt": [
+			  "日志存储",
+			  "LogstoreName"
+			]
+		  }
+		},
+		"DependsOn": [
+		  "日志存储"
+		]
+	  },
+	  "VPC": {
+		"Type": "ALIYUN::ECS::VPC",
+		"Condition": "安装文件锁定",
+		"Properties": {
+		  "Description": "函数计算访问表格存储的VPC",
+		  "CidrBlock": "192.168.0.0/16",
+		  "VpcName": "Git-LFS-VPC"
+		}
+	  },
+	  "安全组": {
+		"Type": "ALIYUN::ECS::SecurityGroup",
+		"Condition": "安装文件锁定",
+		"Properties": {
+		  "Description": "函数计算访问表格存储的安全组",
+		  "VpcId": {
+			"Fn::GetAtt": [
+			  "VPC",
+			  "VpcId"
+			]
+		  },
+		  "SecurityGroupName": "Serverless-LFS-SG",
+		  "SecurityGroupType": "normal",
+		  "SecurityGroupIngress": [
+			{
+			  "Description": "ICMP",
+			  "IpProtocol": "icmp",
+			  "PortRange": "-1/-1",
+			  "SourceCidrIp": "0.0.0.0/0",
+			  "Policy": "accept"
+			},
+			{
+			  "Description": "HTTP",
+			  "IpProtocol": "tcp",
+			  "PortRange": "80/80",
+			  "SourceCidrIp": "0.0.0.0/0",
+			  "Policy": "accept"
+			},
+			{
+			  "Description": "HTTPS",
+			  "IpProtocol": "tcp",
+			  "PortRange": "443/443",
+			  "SourceCidrIp": "0.0.0.0/0",
+			  "Policy": "accept"
+			},
+			{
+			  "Description": "DenyAll",
+			  "IpProtocol": "all",
+			  "PortRange": "-1/-1",
+			  "SourceCidrIp": "0.0.0.0/0",
+			  "Policy": "drop",
+			  "Priority": 90
+			}
+		  ],
+		  "SecurityGroupEgress": [
+			{
+			  "Description": "AllowAll",
+			  "IpProtocol": "all",
+			  "PortRange": "-1/-1",
+			  "DestCidrIp": "0.0.0.0/0",
+			  "Policy": "accept"
+			}
+		  ]
+		},
+		"DependsOn": [
+		  "VPC"
+		]
+	  },
+	  "交换机": {
+		"Type": "ALIYUN::ECS::VSwitch",
+		"Condition": "安装文件锁定",
+		"Properties": {
+		  "Description": "函数计算访问表格存储的交换机",
+		  "VpcId": {
+			"Fn::GetAtt": [
+			  "VPC",
+			  "VpcId"
+			]
+		  },
+		  "ZoneId": {
+			"Fn::FindInMap": [
+			  "VpcZones",
+			  "FC",
+			  {
+				"Ref": "ALIYUN::Region"
+			  }
+			]
+		  },
+		  "CidrBlock": "192.168.0.0/24",
+		  "VSwitchName": "LFS-FC-OTS-VSwitch"
+		},
+		"DependsOn": [
+		  "VPC"
+		]
+	  },
+	  "表格存储实例": {
+		"Type": "ALIYUN::OTS::Instance",
+		"Condition": "安装文件锁定",
+		"Properties": {
+		  "InstanceName": {
+			"Fn::Join": [
+			  "-",
+			  [
+				"LFS",
+				{
+				  "Fn::Select": [
+					"-1",
+					{
+					  "Fn::Split": [
+						"-",
+						{
+						  "Ref": "ALIYUN::StackId"
+						}
+					  ]
+					}
+				  ]
+				}
+			  ]
+			]
+		  },
+		  "Description": "Git LFS文件锁功能数据库",
+		  "Network": "NORMAL",
+		  "ClusterType": "HYBRID"
+		}
+	  },
+	  "表格存储绑定VPC": {
+		"Type": "ALIYUN::OTS::VpcBinder",
+		"Condition": "安装文件锁定",
+		"Properties": {
+		  "InstanceName": {
+			"Fn::GetAtt": [
+			  "表格存储实例",
+			  "InstanceName"
+			]
+		  },
+		  "Vpcs": [
+			{
+			  "VpcId": {
+				"Fn::GetAtt": [
+				  "VPC",
+				  "VpcId"
+				]
+			  },
+			  "InstanceVpcName": {
+				"Fn::Join": [
+				  "",
+				  [
+					"lfsvpc",
+					{
+					  "Fn::Select": [
+						"-2",
+						{
+						  "Fn::Split": [
+							"-",
+							{
+							  "Ref": "ALIYUN::StackId"
+							}
+						  ]
+						}
+					  ]
+					}
+				  ]
+				]
+			  },
+			  "Network": "NORMAL",
+			  "VirtualSwitchId": {
+				"Fn::GetAtt": [
+				  "交换机",
+				  "VSwitchId"
+				]
+			  }
+			}
+		  ]
+		},
+		"DependsOn": [
+		  "VPC",
+		  "交换机",
+		  "表格存储实例"
+		]
+	  },
+	  "文件锁表格": {
+		"Type": "ALIYUN::OTS::Table",
+		"Condition": "安装文件锁定",
+		"Properties": {
+		  "InstanceName": {
+			"Fn::GetAtt": [
+			  "表格存储实例",
+			  "InstanceName"
+			]
+		  },
+		  "TableName": {
+			"Fn::Join": [
+			  "_",
+			  [
+				"lfs_locks",
+				{
+				  "Fn::Select": [
+					"-2",
+					{
+					  "Fn::Split": [
+						"-",
+						{
+						  "Ref": "ALIYUN::StackId"
+						}
+					  ]
+					}
+				  ]
+				}
+			  ]
+			]
+		  },
+		  "TimeToLive": -1,
+		  "MaxVersions": 1,
+		  "PrimaryKey": [
+			{
+			  "Type": "BINARY",
+			  "Name": "file_id"
+			}
+		  ],
+		  "ReservedThroughput": {
+			"Read": 0,
+			"Write": 0
+		  }
+		},
+		"DependsOn": [
+		  "表格存储实例",
+		  "表格存储绑定VPC"
+		]
+	  },
+	  "LFS函数所属服务": {
+		"Type": "ALIYUN::FC::Service",
+		"Properties": {
+		  "ServiceName": {
+			"Fn::Join": [
+			  "-",
+			  [
+				"git-lfs",
+				{
+				  "Fn::Select": [
+					"-2",
+					{
+					  "Fn::Split": [
+						"-",
+						{
+						  "Ref": "ALIYUN::StackId"
+						}
+					  ]
+					}
+				  ]
+				}
+			  ]
+			]
+		  },
+		  "Description": "Git LFS API函数计算服务",
+		  "Role": {
+			"Fn::GetAtt": [
+			  "服务的RAM角色",
+			  "Arn"
+			]
+		  },
+		  "InternetAccess": true,
+		  "VpcConfig": {
+			"Fn::If": [
+			  "安装文件锁定",
+			  {
+				"VpcId": {
+				  "Fn::GetAtt": [
+					"VPC",
+					"VpcId"
+				  ]
+				},
+				"VSwitchIds": [
+				  {
+					"Fn::GetAtt": [
+					  "交换机",
+					  "VSwitchId"
+					]
+				  }
+				],
+				"SecurityGroupId": {
+				  "Fn::GetAtt": [
+					"安全组",
+					"SecurityGroupId"
+				  ]
+				}
+			  },
+			  {
+				"Ref": "ALIYUN::NoValue"
+			  }
+			]
+		  }
+		},
+		"DependsOn": [
+		  "服务的RAM角色",
+		  "VPC",
+		  "交换机",
+		  "安全组"
+		]
+	  },
+	  "函数触发器": {
+		"Type": "ALIYUN::FC::Trigger",
+		"Properties": {
+		  "FunctionName": {
+			"Fn::GetAtt": [
+			  "LFS后端函数",
+			  "FunctionName"
+			]
+		  },
+		  "ServiceName": {
+			"Fn::GetAtt": [
+			  "LFS函数所属服务",
+			  "ServiceName"
+			]
+		  },
+		  "TriggerName": "lfs-http",
+		  "TriggerType": "http",
+		  "TriggerConfig": {
+			"AuthType": "anonymous",
+			"Methods": [
+			  "POST",
+			  "GET"
+			]
+		  }
+		},
+		"DependsOn": [
+		  "LFS后端函数"
+		]
+	  },
+	  "LFS后端函数": {
+		"Type": "ALIYUN::FC::Function",
+		"Properties": {
+		  "FunctionName": "lfs",
+		  "Description": "Git LFS服务器",
+		  "MemorySize": 128,
+		  "Runtime": "nodejs12",
+		  "EnvironmentVariables": {
+			"USERNAME": {
+			  "Ref": "用户名"
+			},
+			"PASSWORD": {
+			  "Ref": "密码"
+			},
+			"OSSENDPOINT": {
+			  "Fn::Join": [
+				"",
+				[
+				  "https://oss-",
+				  {
+					"Ref": "ALIYUN::Region"
+				  },
+				  ".aliyuncs.com"
+				]
+			  ]
+			},
+			"OSSINTERNAL": {
+			  "Fn::Join": [
+				"",
+				[
+				  "https://oss-",
+				  {
+					"Ref": "ALIYUN::Region"
+				  },
+				  "-internal.aliyuncs.com"
+				]
+			  ]
+			},
+			"BUCKET": {
+			  "Fn::GetAtt": [
+				"存放LFS文件的存储桶",
+				"Name"
+			  ]
+			},
+			"TSENDPOINT": {
+			  "Fn::If": [
+				"安装文件锁定",
+				{
+				  "Fn::Select": [
+					"0",
+					{
+					  "Fn::GetAtt": [
+						"表格存储绑定VPC",
+						"Endpoints"
+					  ]
+					}
+				  ]
+				},
+				{
+				  "Ref": "ALIYUN::NoValue"
+				}
+			  ]
+			},
+			"TSINSTANCE": {
+			  "Fn::If": [
+				"安装文件锁定",
+				{
+				  "Fn::GetAtt": [
+					"表格存储实例",
+					"InstanceName"
+				  ]
+				},
+				{
+				  "Ref": "ALIYUN::NoValue"
+				}
+			  ]
+			},
+			"TABLENAME": {
+			  "Fn::If": [
+				"安装文件锁定",
+				{
+				  "Fn::GetAtt": [
+					"文件锁表格",
+					"TableName"
+				  ]
+				},
+				{
+				  "Ref": "ALIYUN::NoValue"
+				}
+			  ]
+			}
+		  },
+		  "ServiceName": {
+			"Fn::GetAtt": [
+			  "LFS函数所属服务",
+			  "ServiceName"
+			]
+		  },
+		  "Timeout": 30,
+		  "Handler": "index.handler",
+		  "Code": {
+			"ZipFile": ""
+		  }
+		},
+		"DependsOn": [
+		  "LFS函数所属服务",
+		  "存放LFS文件的存储桶",
+		  "文件锁表格"
+		]
+	  }
+	}
+  }
