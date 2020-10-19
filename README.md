@@ -125,7 +125,7 @@ Git LFS协议仅能够上传、下载，没有提供删除服务器端文件的�
 
 ## 反馈
 
-故障报告、建议请通过[Issues](issues)提出，其他事项请联系zhxxch at outlook dot com。
+故障报告、建议请通过[Issues](https://github.com/zhxxch/git-lfs-one/issues)提出，其他事项请联系zhxxch at outlook dot com。
 
 ## 使用许可
 
