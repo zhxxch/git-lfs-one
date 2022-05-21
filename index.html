@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css"
-	integrity="sha256-aAr2Zpq8MZ+YA/D6JtRD3xtrwpEz2IqOS+pWD/7XKIw=" crossorigin="anonymous">
+<link rel="stylesheet" href="//cdn.staticfile.org/bootstrap/4.5.3/css/bootstrap.min.css">
 <title>Git LFS One</title>
 <style>
 	body {
@@ -18,9 +17,6 @@
 </style>
 <script>
 	const $ = document.querySelector.bind(document);
-	if(window.location.protocol!="https:"){
-		window.location.protocol = "https:";
-	}
 	const verify = (signature_base64, data_str) => crypto.subtle.importKey("jwk", { "alg": "RS256", "e": "AQAB", "ext": true, "key_ops": ["verify"], "kty": "RSA", "n": "zUIZDg_7dmYCW2A-GfTf3OJ5CGsYBC-I90QIXj3h1SKUmjh9DhluQpfkgOhXhofB4HgAfyQWadpW8K8QSaTvi-_mZ0H8lpOGRRnPbzopfP9TqhQ2X4LxngoErAOILE1El4qZlvVhXBzLbXjdWm-ctATFfVHL_l456MclJrAPuL0" }, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]).then(k => { return crypto.subtle.verify("RSASSA-PKCS1-v1_5", k, Uint8Array.from(atob(signature_base64), c => c.charCodeAt(0)), Uint8Array.from(data_str, c => c.charCodeAt(0))) }).then(v => { if (v) return v; else throw new Error; });
 	window.addEventListener("load", () => {
 		const QueryString = new URLSearchParams(window.location.search);
